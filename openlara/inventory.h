@@ -985,7 +985,12 @@ struct Inventory
             if (gSettings.video_gamma != gamma)
             {
                 gSettings.video_gamma = gamma;
+#ifdef __SATURN__
+                extern void screenSetGamma(uint8_t gamma);
+                screenSetGamma((uint8)gamma);
+#else
                 palSet(level.palette, gamma << 4, gBrightness);
+#endif
                 osSaveSettings();
             }
         }

@@ -13,6 +13,13 @@ void screenInit();
 void screenPlaneLevel(bool on);
 int32_t screenFramesFade();
 
+// Retail Gamma: VDP2 colour offset (0 = off; higher → white fog). Look
+// brightness is shade LOOK_BRIGHT in render.cpp, not this.
+void screenSetGamma(uint8_t gamma);
+
+// Next screenRelease(false) fades from black to Gamma over 30 vblanks (level load).
+void screenLevelFadeIn();
+
 // Shows BINDATA/<name>.BIN, a 15-bit RGB picture width x 224, centred, in
 // place of the game's frame until screenRelease.
 void screenShow(const char* name, int32_t width);

@@ -359,6 +359,7 @@ const void* osLoadLevel(LevelID id)
 
     planeReady();
     screenPlaneLevel(planeLevel());
+    screenLevelFadeIn();
     screenRelease(false);
     crashHold(false);
     return LEVEL_ADDR;

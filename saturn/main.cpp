@@ -151,6 +151,8 @@ int main()
     }
 
     gameInit();
+    // after settings: VDP2 colour offset for play (retail Gamma; 0 → dim)
+    screenSetGamma(gSettings.video_gamma);
 
 #ifdef START_YAW
     // testing: Lara's exact heading where LARA_START put her (items keep a

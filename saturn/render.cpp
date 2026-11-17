@@ -965,8 +965,21 @@ void closeBackground()
     screenClosing();
 }
 
-// VDP1's frames fade on VDP2's offset B, but on a plane level the offsets are the plane's
-// and the picture's (screen.cpp): there the ring fades by its shades, in the same steps.
+// Lift midtones toward the brighter lab look without VDP2 colour-offset fog:
+// highlights stay capped at 31; darker shades lose less. Inventory on a plane
+// level still rides screenFramesFade (sprites have no VDP2 offset there).
+#define LOOK_BRIGHT 6
+
+static void shadeWrite(int32 lift)
+{
+    for (int32 g = 0; g < 32; g++)
+    {
+        const uint32 c = uint32(X_CLAMP(31 - g + lift, 0, 31));
+        gShadeLevel[g] = c;
+        gShadeGouraud[g] = (c << 10) | (c << 5) | c;
+    }
+}
+
 static void shadesFade()
 {
     static int32 faded;
@@ -974,12 +987,7 @@ static void shadesFade()
     if (now == faded)
         return;
     faded = now;
-    for (int32 g = 0; g < 32; g++)
-    {
-        const uint32 c = uint32(X_MAX(31 - g + now, 0));
-        gShadeLevel[g] = c;
-        gShadeGouraud[g] = (c << 10) | (c << 5) | c;
-    }
+    shadeWrite(LOOK_BRIGHT + now);
 }
 
 void flush_c()
@@ -1184,13 +1192,8 @@ void renderInit()
         divTable[i] = (1 << 16) / i;
     }
 
-    // shade g as a gouraud level, in even steps to black
-    for (int32 g = 0; g < 32; g++)
-    {
-        uint32 c = 31 - g;
-        gShadeLevel[g] = c;
-        gShadeGouraud[g] = (c << 10) | (c << 5) | c;
-    }
+    // shade g as a gouraud level (LOOK_BRIGHT: clearer midtones, no white fog)
+    shadeWrite(LOOK_BRIGHT);
 
     // the clear's texture
     REG32(VDP1_VRAM + VRAM_CLEAR_TEX) = 0;

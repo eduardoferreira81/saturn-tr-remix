@@ -28,6 +28,12 @@
 #define OVERLAY_PRIORITY 7      // over them
 
 #define PICTURE_DIM     -64     // the paused scene behind the inventory, as the original's
+// Retail Gamma: colour offset 0..+127 (raises → white fog). Default 0 = off.
+static int32_t gammaToOffset(uint8_t g)
+{
+    int32_t o = (int32_t)g * 8;
+    return o > 127 ? 127 : o;
+}
 
 static volatile bool gPicture;  // NBG0 holds a picture, and shows
 static volatile bool gOverlay;  // NBG0 is the overlay, and shows
@@ -35,6 +41,8 @@ static bool gCaptured;          // the picture is the frame screenCapture took, 
 static bool gPlaneLevel;        // the level has a plane
 static volatile bool gPlaneShown;
 static uint32_t gPictures;
+static int32_t gPlayOffset;     // 0 = no fog; look brightness is shade LOOK_BRIGHT
+static bool gLevelFadeIn;
 
 // The colour offsets' fades, the bitmap's and the frames': each one's offset
 // << 16, its step a vblank, its target and the vblanks left.
@@ -95,6 +103,13 @@ static void fadesClear()
     fade(FADE_FRAMES, 0, 0);
 }
 
+// Play frames back at the Gamma offset (issue 215 / retail 060391a0).
+static void fadePlay(uint32_t vblanks)
+{
+    fade(FADE_PICTURE, 0, 0);
+    fade(FADE_FRAMES, gPlayOffset, vblanks);
+}
+
 static void showLayers()
 {
     VDP2_PRINA = gPicture ? PICTURE_PRIORITY : OVERLAY_PRIORITY;
@@ -112,7 +127,30 @@ static void showFramesOnly()
     gPlaneShown = gPlaneLevel;
     showLayers();
     showFrames();
-    fadesClear();
+    if (gLevelFadeIn)
+    {
+        gLevelFadeIn = false;
+        fade(FADE_FRAMES, -255, 0);
+        fadePlay(30);   // retail: to the Gamma setting
+    }
+    else
+    {
+        fadePlay(0);    // inventory close → play Gamma at once
+    }
+}
+
+void screenLevelFadeIn()
+{
+    gLevelFadeIn = true;
+}
+
+void screenSetGamma(uint8_t gamma)
+{
+    gPlayOffset = gammaToOffset(gamma);
+    // live during play (not over a picture / inventory fade)
+    if (!gPicture && gFadeLeft[FADE_FRAMES] == 0) {
+        fade(FADE_FRAMES, gPlayOffset, 0);
+    }
 }
 
 static void hideFrames()
